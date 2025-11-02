@@ -1,0 +1,5 @@
+{
+  "name": "Samba Share Manager for EXT filesystem",
+  "description": "A Cockpit-like plugin to manage Samba shares. It allows viewing, adding, editing, assign quota and deleting Samba share configurations from a central interface. Designed for EXT filesystems",
+  "requestFramePermissions": []
+}
