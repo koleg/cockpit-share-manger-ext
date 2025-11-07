@@ -255,7 +255,7 @@ ${mockProjectName2},ok,ok,250M,0K,500M,,42,0,0,
                 exit_status = 1;
                 stderr = `df: ${args[args.length - 1]}: No such file or directory`;
             }
-        } else if (['mkdir', 'chmod', 'chattr', 'smbcontrol'].includes(cmd)) {
+        } else if (['mkdir', 'chmod', 'chattr', 'smbcontrol', 'find'].includes(cmd)) {
            // No-op for mock, always succeeds.
            console.log(`[MOCK] Executed ${cmd} with args:`, args);
         } else if (cmd === 'setquota') {
@@ -732,11 +732,18 @@ export const sambaService = {
   },
 
   _applyProjectAttribute: async (projectId: number, path: string): Promise<void> => {
-      const command = ['chattr', '-R', '-p', projectId.toString(), path];
-      return new Promise((resolve, reject) => {
-          cockpit.spawn(command, { superuser: 'require', err: 'out' })
+      const commandForDirs = ['find', path, '-type', 'd', '-exec', 'chattr', '+P', '-p', projectId.toString(), '{}', '+'];
+      await new Promise<void>((resolve, reject) => {
+          cockpit.spawn(commandForDirs, { superuser: 'require', err: 'out' })
               .done(() => resolve())
-              .fail((err: any) => reject(new Error(`Failed to apply project attribute to ${path}: ${err.message}`)));
+              .fail((err: any) => reject(new Error(`Failed to apply project attribute to directories in ${path}: ${err.message}`)));
+      });
+
+      const commandForFiles = ['find', path, '-type', 'f', '-exec', 'chattr', '-p', projectId.toString(), '{}', '+'];
+      await new Promise<void>((resolve, reject) => {
+          cockpit.spawn(commandForFiles, { superuser: 'require', err: 'out' })
+              .done(() => resolve())
+              .fail((err: any) => reject(new Error(`Failed to apply project attribute to files in ${path}: ${err.message}`)));
       });
   },
 
